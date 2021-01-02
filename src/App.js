@@ -8,105 +8,21 @@ import { withActions } from './slatePlugins';
 
 const App = () => {
   const editor = useMemo(() => withReact(withActions(createEditor())), []);
-  const initialValue = [
-    // {
-    //   type: 'paragraph',
-    //   children: [{ text: 'A line of text in , a paragraph.' }],
-    //   children: [{ text: 'A line of text in , a paragraph.' }],
-    // },
-      {
-        type: "action",
-        children: [
-          {
-            text: "Imperdiet hendrerit ligula conubia lorem porttitor",
-            type: "default"
-          }
-        ]
-      },
-      {
-        type: "separator",
-        children: [
-          {
-            text: ""
-          }
-        ]
-      },
-      {
-        type: "action",
-        children: [
-          {
-            text: "foo"
-          },
-          {
-            type: "action",
-            text: "1609074761895"
-          },
-          {
-            type: "operator",
-            text: "+"
-          },
-          {
-            type: "value",
-            text: "value"
-          },
-          {
-            type: "action",
-            text: "16091609074768163"
-          },
-          {
-            type: "operator",
-            text: "+"
-          },
-          {
-            type: "value",
-            text: "value"
-          },
-          {
-            type: "action",
-            text: "074765753"
-          },
-          {
-            type: "operator",
-            text: "+"
-          },
-          {
-            type: "value",
-            text: "valu"
-          },
-          {
-            type: "action",
-            text: "11609074775713"
-          },
-          {
-            type: "operator",
-            text: "+"
-          },
-          {
-            type: "value",
-            text: "value"
-          },
-          {
-            type: "action",
-            text: "609074769738"
-          },
-          {
-            type: "operator",
-            text: "+"
-          },
-          {
-            type: "value",
-            text: "valueed"
-          }
-        ]
-      }
-  ];
+  const initialValue = {
+    type: 'command',
+    children: [{ text: 'A line of text in , a p, ,aragraph.' }],
+  };
 
-  const [value, setValue] = useState(initialValue);
+  const [value, setValue] = useState([initialValue]);
+
+  // split initial value
+  useEffect(() => editor.splitActions(initialValue), []);
 
   useEffect(() => {
     if (!editor?.selection) return '';
     const { path, offset } = editor?.selection?.anchor;
     console.log('[UPDATED]', value);
+
     const node = Node.get(editor, path);
     const { text } = node;
 
@@ -121,8 +37,8 @@ const App = () => {
       case 'separator':
         return <SeparatorElement {...props} />
 
-      case 'action':
-        return <ActionElement {...props} />
+      case 'command':
+        return <CommandElement {...props} />
 
       default:
         return <DefaultElement {...props} />
@@ -152,13 +68,13 @@ const App = () => {
               children: [{text: ''}]
             };
 
-            const action = {
-              type: 'action',
+            const command = {
+              type: 'command',
               children: [{text: ''}]
             };
 
             Transforms.insertNodes(editor, separator);
-            Transforms.insertNodes(editor, action);
+            Transforms.insertNodes(editor, command);
           }
           if (!event.ctrlKey) {
             return;
@@ -186,10 +102,16 @@ const Position = props => {
   // // Get properties of current leaf
   const mark = Editor.marks(editor);
 
-  console.log('getCurrentAction', editor.getCurrentAction());
+  // console.log('getCurrentAction', editor.getCurrentAction());
+  // console.log('last', Node.last(fragment[0], [0])[0]);
+  // Node.texts(editor.getCurrentAction(), path).next().value
+
+  console.log('Match?', Text.matches(node, {type: 'operator'}));
 
   const wrapItem = () => {
     // SET PROPERTIES ON TOP LEVEL ITEM
+    console.log('editor.getCurrentAction(', editor.getCurrentAction());
+    console.log('path', path);
     Transforms.setNodes(editor,
       {
         type: 'command',
@@ -219,7 +141,7 @@ const Position = props => {
     Transforms.setNodes(editor,
       {type: 'operator'},
       {
-        at: editor.createRange(4, 1),
+        at: editor.createRange(3, 1),
         match: n => Text.isText(n),
         split: true,
       }
@@ -229,7 +151,7 @@ const Position = props => {
     Transforms.setNodes(editor,
       {type: 'value'},
       {
-        at: editor.createRange(5, 3),
+        at: editor.createRange(4, 3),
         match: n => Text.isText(n),
         split: true,
       }
@@ -298,7 +220,7 @@ const SeparatorElement = props => {
     )
 }
 
-const ActionElement = props => {
+const CommandElement = props => {
   return (
     <p style={{background: 'yellow'}} {...props.attributes}>
       {props.children}
