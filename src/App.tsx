@@ -1,47 +1,38 @@
 // @refresh reset
 /* eslint-disable */
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { createEditor, Editor, Element, Node, Text, Transforms } from 'slate';
+import { BaseText, createEditor, Editor, Element, Text, Transforms } from 'slate';
 import { Slate, Editable, withReact, useSlate } from 'slate-react';
-import styles from './app.module.css';
+import { CommandElement, CustomEditor, LeafElement } from './interfaces/slate';
 import { withActions } from './slatePlugins';
 
 const App = () => {
-  const editor = useMemo(() => withReact(withActions(createEditor())), []);
-  const initialValue = {
+  const editor = useMemo(() => withReact(withActions(createEditor() as CustomEditor)), []);
+  const initialValue: CommandElement = {
     type: 'command',
     children: [{ text: 'A line of text in , a p, ,aragraph.' }],
   };
 
-  const [value, setValue] = useState([initialValue]);
+  const [value, setValue] = useState<any>([initialValue]);
 
   // split initial value
   useEffect(() => editor.splitActions(initialValue), []);
 
   useEffect(() => {
-    if (!editor?.selection) return '';
-    const { path, offset } = editor?.selection?.anchor;
+    if (!editor?.selection) { return undefined };
     console.log('[UPDATED]', value);
-
-    const node = Node.get(editor, path);
-    const { text } = node;
-
-    if (text[0] === 'b') {
-      // addMark(editor, 'bold');
-      Editor.addMark(editor, 'bold', true)
-    };
   }, [value]);
 
   const renderElement = useCallback(props => {
     switch (props.element.type) {
       case 'separator':
-        return <SeparatorElement {...props} />
+        return <SeparatorNode {...props} />
 
       case 'command':
-        return <CommandElement {...props} />
+        return <CommandNode {...props} />
 
       default:
-        return <DefaultElement {...props} />
+        return <DefaultNode {...props} />
     }
   }, []);
 
@@ -87,33 +78,35 @@ const App = () => {
   );
 }
 
-const Position = props => {
-  const editor = useSlate();
+const Position = () => {
+  const editor = useSlate() as unknown as CustomEditor;
 
-  if (!editor?.selection) return '';
+  if (!editor?.selection) return null;
 
   const { path, offset } = editor?.selection?.anchor;
-  const node = Node.get(editor, path);
-  const fragment = Editor.fragment(editor, path);
+  const node = Editor.node(editor, path);
 
-  const { type } = fragment[0];
-  const { text } = node;
+  // const { type } = fragment[0];
+  const { text } = node as unknown as BaseText;
+  // const text = undefined
 
   // // Get properties of current leaf
-  const mark = Editor.marks(editor);
+  const mark = Editor.marks(editor) as LeafElement;
 
   // console.log('getCurrentAction', editor.getCurrentAction());
   // console.log('last', Node.last(fragment[0], [0])[0]);
   // Node.texts(editor.getCurrentAction(), path).next().value
 
-  console.log('Match?', Text.matches(node, {type: 'operator'}));
+  // console.log('Match?', Text.matches(node, {type: 'operator'}));
 
   const wrapItem = () => {
     // SET PROPERTIES ON TOP LEVEL ITEM
-    console.log('editor.getCurrentAction(', editor.getCurrentAction());
+    console.log('editor.getCurrentAction()', editor.getCurrentAction());
     console.log('path', path);
+
     Transforms.setNodes(editor,
       {
+        //@ts-ignore
         type: 'command',
         action: 'lr',
         operator: '+',
@@ -129,6 +122,7 @@ const Position = props => {
 
     // ACTION
     Transforms.setNodes(editor,
+      //@ts-ignore
       {type: 'action'},
       {
         at: editor.createRange(0, 3),
@@ -139,6 +133,7 @@ const Position = props => {
 
     // OPERATOR
     Transforms.setNodes(editor,
+      //@ts-ignore
       {type: 'operator'},
       {
         at: editor.createRange(3, 1),
@@ -149,6 +144,7 @@ const Position = props => {
 
     // VALUE
     Transforms.setNodes(editor,
+      //@ts-ignore
       {type: 'value'},
       {
         at: editor.createRange(4, 3),
@@ -156,6 +152,7 @@ const Position = props => {
         split: true,
       }
     );
+    //@ts-check
 
     // ALTERNATIVE APPROACH WOULD BE TO INSERT NODES AND FLUSH THE ORIGINAL ONE
     // (might cause issues with caret position)
@@ -198,11 +195,11 @@ const Position = props => {
       <br />
       offset: {offset}
       <br />
-      type: {type}
+      {/* type: {type} */}
       <br />
       text: {text}
       <br />
-      mark: {mark.type}
+      mark: {mark?.type}
       <br />
       fragment:
       <div><pre>{JSON.stringify(editor.getCurrentAction(), null, 2) }</pre></div>
@@ -211,7 +208,7 @@ const Position = props => {
   )
 }
 
-const SeparatorElement = props => {
+const SeparatorNode = (props: any) => {
   return (
     <span contentEditable={false} style={{background: 'red'}} {...props.attributes}>
       ,
@@ -220,7 +217,7 @@ const SeparatorElement = props => {
     )
 }
 
-const CommandElement = props => {
+const CommandNode = (props: any) => {
   return (
     <p style={{background: 'yellow'}} {...props.attributes}>
       {props.children}
@@ -228,11 +225,11 @@ const CommandElement = props => {
     )
 }
 
-const DefaultElement = props => {
+const DefaultNode = (props: any) => {
   return <p {...props.attributes}>{props.children}</p>
 }
 
-const Leaf = ({ attributes, children, leaf }) => {
+const Leaf = ({ attributes, children, leaf }: any) => {
   if (leaf.bold) {
     children = <strong>{children}</strong>
   }

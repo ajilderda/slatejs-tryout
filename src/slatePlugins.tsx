@@ -1,9 +1,11 @@
-import { Element, Node, Transforms } from 'slate';
+import { BaseEditor, BaseElement, BaseNode, BasePoint, BaseText, Element, Node, Path, Point, Transforms } from 'slate';
+import { CustomEditor } from './interfaces/slate';
 import regex from './utils/regex';
 
-export const withActions = editor => {
-  editor.splitActions = (nodes) => {
+export const withActions = (editor: CustomEditor) => {
+  editor.splitActions = (nodes: BaseElement) => {
     const nodeGen = Node.nodes(nodes);
+
     for (let node of nodeGen) {
       const path = node[1];
       if (!path.length) continue;
@@ -11,12 +13,13 @@ export const withActions = editor => {
       console.log(node);
 
       const commaRegex = /,/gm;
-      const {text} = node[0];
+      const { text } = node[0] as BaseText;
 
       for (let comma of regex.execAll(commaRegex, text).reverse()) {
         const range = editor.createRange(comma.index, comma.length, path);
 
         Transforms.setNodes(editor,
+          //@ts-ignore
           { type: 'separator' },
           {
             at: range,
@@ -31,7 +34,7 @@ export const withActions = editor => {
     for (let node of nodes.children) {
       // console.log(node);
       const commaRegex = /,/gm;
-      console.log(commaRegex.exec(node.text))
+      console.log(commaRegex.exec((node as BaseText).text))
     }
 
     // Transforms.setNodes(editor,
@@ -50,21 +53,25 @@ export const withActions = editor => {
     // );
   }
 
-  editor.transformAction = (input) => {
+  // editor.transformAction = (input) => {
 
-    return input;
-  }
+  //   return input;
+  // }
 
   editor.getCurrentAction = () => {
-    const { path } = editor?.selection?.anchor;
+    if (!editor?.selection) return;
+
+    const { path } = editor.selection.anchor;
     if (!path) return undefined;
 
     return editor.children[path[0]];
     // return Editor.fragment(editor, [path[0]])[0]; // does the same
   }
 
-  editor.mergeAll = (index) => {
+  editor.mergeAll = (index: number) => {
     const currentAction = editor.children[index];
+    if (!Element.isElement(currentAction)) return;
+
     for (let j = currentAction.children.length - 1; j >= 0; j--) {
       Transforms.mergeNodes(editor, {
         at: [index, j],
@@ -72,7 +79,8 @@ export const withActions = editor => {
     }
   }
 
-  editor.createRange = (start, length, path = editor?.selection?.anchor.path) => {
+  editor.createRange = (start: number, length: number, pathArg?: Path) => {
+    let path = pathArg ?? editor?.selection?.anchor.path;
     if (!path) return undefined;
 
     const topLevelPath = path[0];
